@@ -2,15 +2,14 @@
 <font size='5'>**Research on the optimization of multi-class land cover classification using deep learning with multispectral imagery**</font>
 
 
-Yichuan Li, [Junchuan Yu*](https://github.com/JunchuanYu), Ming Wang, Mingying Xie, Laidian Xi, Yunxuan Pang, and Changhong Hou
+Yichuan Li, [Junchuan Yu*](https://github.com/JunchuanYu), Ming Wang, Minying Xie, Laidian Xi, Yunxuan Pang, and Changhong Hou
 
 *corresponding author
 
 ## Updates
 * **[2024.3.24]** Paper submission.
 * **[2024.4.23]** Paper revision
-* **[2024.4.24]** Code testing
-* **[2024.4.--]** Code release
+* **[2024.4.24]** Code release
 
 
 ## Dataset
@@ -56,7 +55,7 @@ Click the links below to download the checkpoint for the corresponding model typ
 
 ## Acknowledgement
 *  [HeyWhale Community](https://www.heywhale.com)  Provided the computational platform for this work.
-+ [kaggle](https://www.kaggle.com).  Provided the dataset  for this work.
++ [kaggle](https://www.kaggle.com)  Provided the dataset  for this work.
 
 If you find this study helpful, please star this repo [OUNet_for_multi-class_land_cover_classification](https://github.com/JunchuanYu/OUNet_for_multi-class_land_cover_classification), and cite using this BibTeX:
 

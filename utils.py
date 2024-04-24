@@ -5,23 +5,30 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from PIL import Image
 from sklearn.metrics import confusion_matrix
-import sys
+import sys,time
 from random import shuffle
 from tensorflow import keras
 from tensorflow.keras.utils import to_categorical
 
-def show_5_images(image,label,n=1):
+def show_5_images(image,label=None,n=1):
+    palette = np.array([ [223,194,125],   [116,173,209],   [27,120,55], [179,88,6], [166,219,160]]) 
+    color=palette[label]
     for k in range(n):
-        fig=plt.figure(figsize=(50,60))
+        fig=plt.figure(figsize=(25,30))
         for i in range(5):
             plt.subplot(k+1,5,k*5+i+1)
             plt.imshow((image[k*5+i,:,:,:3]))
+            plt.grid (False)
+            plt.axis('off')
         plt.show()
-        fig=plt.figure(figsize=(50,60))
-        for i in range(5):
-            plt.subplot(k+1,5,k*5+i+1)
-            plt.imshow(label[k*5+i,:,:])
-        plt.show()
+        if label is not None:
+            fig=plt.figure(figsize=(25,30))
+            for i in range(5):
+                plt.subplot(k+1,5,k*5+i+1)
+                plt.imshow(color[k*5+i,:,:])
+                plt.grid (False)
+                plt.axis('off')
+        plt.show()   
 def num_count(arr,num):
     temp=arr.reshape(-1)
     index=np.where(temp==num)
@@ -45,30 +52,71 @@ def plot_fig(H,outdir):
     plt.savefig(outdir)
 def plot_func(data,label):
     fig=plt.figure(figsize=(25,5))
-    for i in range(20):
-        plt.subplot(2,10,i+1)
+    for i in range(10):
+        plt.subplot(1,10,i+1)
+        plt.axis('off')
         plt.imshow(data[i,:,:,0:3])
+        plt.title('Image'+str(i+1))
+    fig.text(0, 0.5, "Image", fontsize=16, va='center', ha='right')
+    fig.tight_layout()
+
     plt.show()
     fig=plt.figure(figsize=(25,5))
-    for i in range(20):
-        plt.subplot(2,10,i+1)
+    for i in range(10):
+        plt.subplot(1,10,i+1)
+        plt.axis('off')
         plt.imshow((label[i,:,:]))
+        plt.title('Mask'+str(i+1))
+    fig.text(0, 0.55, "Mask", fontsize=16,va='center', ha='right')
+    fig.tight_layout()
+    plt.show()
+def new_val_plot(data,label,pred):
+    fig=plt.figure(figsize=(25,5))
+    for i in range(8):
+        plt.subplot(1,8,i+1)
+        plt.imshow(data[i,:,:,:3])
+        plt.axis('off')
+    plt.show()
+    fig=plt.figure(figsize=(25,5))
+    for i in range(8):
+        plt.subplot(1,8,i+1)
+        plt.imshow(label[i,:,:])
+        plt.axis('off')
+    plt.show()
+    fig=plt.figure(figsize=(25,5))
+    for i in range(8):
+        plt.subplot(1,8,i+1)
+        plt.imshow(pred[i,:,:])
+        plt.axis('off')
     plt.show()
 def val_plot_func(data,label,pred):
-    fig=plt.figure(figsize=(25,5))
-    for i in range(16):
-        plt.subplot(2,8,i+1)
-        plt.imshow(data[i,:,:,:3])
+    fig=plt.figure(figsize=(30,5))
+    for i in range(10):
+        plt.subplot(1,10,i+1)
+        plt.axis('off')
+        plt.imshow(data[i,:,:,0:3])
+        plt.title('Image'+str(i+1))
+    fig.text(-0.04, 0.5, "Image", fontsize=16, va='center', ha='left')
+    fig.tight_layout()
     plt.show()
-    fig=plt.figure(figsize=(25,5))
-    for i in range(16):
-        plt.subplot(2,8,i+1)
+
+    fig=plt.figure(figsize=(30,5))
+    for i in range(10):
+        plt.subplot(1,10,i+1)
+        plt.axis('off')
         plt.imshow(label[i,:,:])
+        # plt.title('Mask'+str(i+1))
+    fig.text(-0.04, 0.5, "Mask", fontsize=16, va='center', ha='left')
+    fig.tight_layout()
     plt.show()
-    fig=plt.figure(figsize=(25,5))
-    for i in range(16):
-        plt.subplot(2,8,i+1)
+    fig=plt.figure(figsize=(30,5))
+    for i in range(10):
+        plt.subplot(1,10,i+1)
+        plt.axis('off')
         plt.imshow(pred[i,:,:])
+        # plt.title('Prediction'+str(i+1))
+    fig.text(-0.04, 0.5, "Prediction", fontsize=16, va='center', ha='left')
+    fig.tight_layout()
     plt.show()
 def plot_fig(H,outdir):
     N=len(H.history['loss'])
@@ -178,11 +226,41 @@ def Write_Tiff(img_arr, geomatrix, projection,path):
         driver = gdal.GetDriverByName("GTiff")
         dataset = driver.Create(path, int(img_width), int(img_height), int(img_bands), datatype)
     #     print(path, int(img_width), int(img_height), int(img_bands), datatype)
-        if(dataset!= None):
+        if(dataset!= None) and (geomatrix !='') and (projection!=''):
             dataset.SetGeoTransform(geomatrix) #写入仿射变换参数
             dataset.SetProjection(projection) #写入投影
         dataset.GetRasterBand(1).WriteArray(img_arr)
         del dataset
+def center_predict(img,model,batch_size,n_label,strides=128,img_size=256):
+    corner_size=int(0.25*img_size)
+    h,w,c = img.shape
+    padding_h = (h//strides + 1) * strides+corner_size+corner_size
+    padding_w = (w//strides + 1) * strides+corner_size+corner_size
+    
+    padding_img = np.zeros((padding_h,padding_w,c),dtype=np.float16)
+    padding_img[corner_size:corner_size+h,corner_size:corner_size+w,:] = img[:,:,:]
+    mask_whole = np.zeros((padding_h,padding_w,n_label),dtype=np.float16)
+    crop_batch=[]
+    for i in range(h//strides+1):
+        for j in range(w//strides+1):
+            crop_img = padding_img[i*strides:i*strides+img_size,j*strides:j*strides+img_size,:]
+            ch,cw,c = crop_img.shape
+            
+            if ch != img_size or cw != img_size:
+                continue
+            crop_batch.append(crop_img)
+            
+    crop_batch=np.array(crop_batch)
+    start_time=time.time()
+    pred=model.predict(crop_batch,batch_size=batch_size)
+
+    for i in range(h//strides+1):
+        for j in range(w//strides+1):
+            mask_whole[i*strides+corner_size:i*strides+img_size-corner_size,j*strides+corner_size:j*strides+img_size-corner_size] = pred[(i+1-1)*(w//strides+1)+(j+1)-1,corner_size:img_size-corner_size,corner_size:img_size-corner_size]
+    score = mask_whole[corner_size:corner_size+h,corner_size:corner_size+w]
+    end_time=time.time()
+    print('pred_time:',end_time-start_time)
+    return score
 def ConfusionMatrix(numClass, imgPredict, Label):  
     #  返回混淆矩阵
     mask = (Label >= 0) & (Label < numClass)  
